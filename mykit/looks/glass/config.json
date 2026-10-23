@@ -1,0 +1,19 @@
+{
+  "dock_apps": [
+    "com.stremio.one",
+    "io.gh.reisxd.tizentube.cobalt",
+    "se.svt.android.svtplay",
+    "com.valvesoftware.steamlink",
+    "com.spotify.tv.android"
+  ],
+  "columns": 5,
+  "background_color": "#090C14",
+  "wallpaper": true,
+  "cinematic_home": true,
+  "dock_glass": true,
+  "icon_only_buttons": true,
+  "wifi_label_width": 200,
+  "app_glow": true,
+  "glow_style": "horizon",
+  "focus_overshoot": false
+}

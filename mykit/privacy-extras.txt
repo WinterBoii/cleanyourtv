@@ -1,0 +1,7 @@
+# Google ad and learning modules, Android 12+ TVs (no TV feature uses them). In 10 to 42 tested lists here.
+# Apply: TV_HOST=<tv ip> tools/disable.sh mykit/privacy-extras.txt   Undo: tools/restore.sh mykit/privacy-extras.txt
+com.android.adservices.api             # Privacy Sandbox ad topics / attribution
+com.android.ondevicepersonalization.services   # on-device ad personalisation
+com.android.federatedcompute.services  # federated ad/usage learning
+com.android.healthconnect.controller   # Health Connect
+com.google.android.syncadapters.calendar   # Google Calendar sync; also carries Google's GrowthKit promo framework

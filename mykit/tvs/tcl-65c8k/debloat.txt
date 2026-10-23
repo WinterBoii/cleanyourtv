@@ -1,0 +1,57 @@
+# TCL 65C8K Google TV (device G08, model "Smart TV Pro", MediaTek tcl9618), EU firmware, 2.4 GB RAM
+# Android 14 (Google TV), firmware UTT2.250416.001 AU02 - same board and build as examples/tcl-55c7k-uk.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh mykit/tvs/tcl-65c8k/debloat.txt
+# Undo:    mykit/tvs/tcl-65c8k/restore.sh   (re-enables everything below, Home back to Projectivy, DNS, location and a11y as before)
+# Everything is DISABLED, not uninstalled.
+#
+# Already disabled before this session (left as they were): launcherx, setupwraith, YouTube, YouTube Music,
+# Play Games, partnersetup, onetimeinitializer, talkback, feedback.
+# Kept: com.tcl.tv, com.tcl.tvinput, com.tcl.suspension (Input panel), com.tcl.dashboard, com.tcl.autopair,
+# all com.mediatek.*, com.tcl.inputmethod.international, Play Store/Services, AirPlay, com.tcl.gamebar,
+# firmware updates. Applied 2026-10-22; reboot-checked the same day (list unchanged, Home and Wi-Fi back).
+
+# TCL tracking and analytics
+com.tcl.ttvs                           # Samba TV ACR viewing tracking, TCL "BI" analytics, Alexa core, T-Cast
+com.tcl.logkit                         # log capture and upload
+com.tcl.usercenter                     # TCL account sign-in nags
+com.android.tv.feedbackconsent
+
+# TCL content, ads and promos
+com.tcl.channelplus                    # TCL Live FAST channels
+com.tcl.tv.tclhome_passive             # pushes TCL content to the home screen at boot
+com.tcl.partnercustomizer              # TCL tweaks to Google TV home rows
+com.tcl.interactive                    # TCL TIAS background service
+com.tcl.messagebox                     # TCL push messages and promos
+com.tcl.waterfall.overseas             # TCL movie/show recommendation browser
+android.autoinstalls.config.google.gtvpai   # silently installs partner apps
+
+# Retail demo and preloaded extras
+com.tcl.exhibit                        # store demo mode switcher
+com.tcl.esticker                       # store / soundbar demo
+com.tcl.ocean.instructions             # e-manual
+com.tcl.repairguide
+com.tcl.smartalexa                     # Alexa
+com.tcl.guard                          # TCL "cleaner" / app manager
+com.google.android.apps.tv.dreamx      # Google ambient screensaver (promos); Aerial Views is the screensaver here
+
+# Off by choice
+com.google.android.katniss             # Google Assistant voice (mic button)
+com.google.android.apps.mediashell     # Chromecast
+com.netflix.ninja                      # Netflix, together with the next line
+com.netflix.tokenmanager
+com.amazon.amazonvideo.livingroom      # Prime Video
+com.google.android.videos              # Google TV movies store
+com.tcl.miracast                       # Miracast screen mirroring
+com.tcl.magiconnectfree                # TCL T-Cast / Magiconnect phone mirroring
+com.tcl.ui_mediaCenter                 # USB media player
+com.tcl.gallery                        # USB photo gallery + TCL screensaver
+com.tcl.t_solo                         # T-Solo "listen alone"
+com.tcl.UpdatePeripheral               # TCL soundbar firmware updates
+
+# Google ad and learning modules (no TV feature uses them)
+com.android.adservices.api             # Privacy Sandbox ad topics / attribution
+com.android.ondevicepersonalization.services   # on-device ad personalisation
+com.android.federatedcompute.services  # federated ad/usage learning
+com.android.healthconnect.controller   # Health Connect
+com.google.android.syncadapters.calendar   # Google Calendar sync; also carries Google's GrowthKit promo framework

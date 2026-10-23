@@ -1,0 +1,12 @@
+{
+  "dock_apps": [
+    "com.stremio.one",
+    "io.gh.reisxd.tizentube.cobalt",
+    "se.svt.android.svtplay",
+    "com.valvesoftware.steamlink",
+    "com.spotify.tv.android"
+  ],
+  "columns": 5,
+  "background_color": "#000000",
+  "wallpaper": false
+}
