@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PIN pad for AppLock: D-pad and OK, or the remote's number keys. Same plates as Launcher settings. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF0F1416"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/pinTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@string/font_medium"
+        android:textColor="#FFF6F1E7"
+        android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/pinDots"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="24dp"
+        android:letterSpacing="0.4"
+        android:textColor="#FFF6F1E7"
+        android:textSize="30sp" />
+
+    <LinearLayout style="@style/PinRow">
+        <TextView style="@style/PinKey" android:text="1" />
+        <TextView style="@style/PinKey" android:text="2" />
+        <TextView style="@style/PinKey" android:text="3" />
+    </LinearLayout>
+    <LinearLayout style="@style/PinRow">
+        <TextView style="@style/PinKey" android:text="4" />
+        <TextView style="@style/PinKey" android:text="5" />
+        <TextView style="@style/PinKey" android:text="6" />
+    </LinearLayout>
+    <LinearLayout style="@style/PinRow">
+        <TextView style="@style/PinKey" android:text="7" />
+        <TextView style="@style/PinKey" android:text="8" />
+        <TextView style="@style/PinKey" android:text="9" />
+    </LinearLayout>
+    <LinearLayout style="@style/PinRow">
+        <TextView android:id="@+id/pinCancel" style="@style/PinKey" android:text="@android:string/cancel" android:textSize="18sp" />
+        <TextView style="@style/PinKey" android:text="0" />
+        <TextView android:id="@+id/pinDelete" style="@style/PinKey" android:text="⌫" />
+    </LinearLayout>
+</LinearLayout>

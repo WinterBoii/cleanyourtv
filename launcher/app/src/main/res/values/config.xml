@@ -94,6 +94,12 @@
          content:// URI goes to its channel player, which resumes the last film it played. Leave empty to omit. -->
     <string name="input_uri_scheme" translatable="false"></string>
 
+    <!-- App lock (Launcher settings > App lock, off until a PIN is set): packages the "Inputs" entry locks besides
+         the launcher's Inputs menu and live_tv_package, such as the TV's own source panel behind the remote's
+         Input button. Needs HOME_KEY_SERVICE=1. TCL Google TV: com.tcl.suspension. -->
+    <string-array name="input_lock_packages" translatable="false">
+        <item>com.tcl.suspension</item>
+    </string-array>
     <!-- Whether HomeKeyService and InputKeyService actually request key filtering (config.xml or a theme's
          "key_filter"). Some firmware (TCL Google TV on Android 12) drops key auto-repeat once ANY service
          filters keys, so long-pressing volume only steps once: set false and the service keeps running but

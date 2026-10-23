@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark ink on the focused plate, warm white elsewhere (CleanFrame's settings palette). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF141618" />
+    <item android:color="#FFF6F1E7" />
+</selector>

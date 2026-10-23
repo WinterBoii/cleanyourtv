@@ -5,9 +5,22 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.Outline;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewOutlineProvider;
+import android.widget.BaseAdapter;
+import android.widget.GridView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,6 +37,9 @@ public final class LauncherSettingsActivity extends Activity {
     private static final int[] DOCK_OPACITIES = {100, 70, 50, 30};
     private final TextView[] dockChoices = new TextView[DOCK_OPACITIES.length];
     private TextView wallpaperChoice;
+    private TextView appLockChoice;
+    private static final int UNLOCK_REQUEST = 1;
+    private static final int SET_PIN_REQUEST = 2;
     private TextView animationsChoice;
     private TextView advancedChoice;
     private TextView followThemeChoice;
@@ -37,6 +53,8 @@ public final class LauncherSettingsActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_launcher_settings);
+        if (AppLock.needsPin(this, AppLock.LAUNCHER_SETTINGS)) startActivityForResult(new Intent(this, PinActivity.class)
+                .putExtra(PinActivity.EXTRA_TARGET, AppLock.LAUNCHER_SETTINGS), UNLOCK_REQUEST);
         choices = getSharedPreferences(Config.SETTINGS_NAME, MODE_PRIVATE);
         Config config = Config.load(this);
         View reorderChoice = findViewById(R.id.reorderChoice);
@@ -96,6 +114,12 @@ public final class LauncherSettingsActivity extends Activity {
         }
         wallpaperChoice = findViewById(R.id.wallpaperChoice);
         wallpaperChoice.setOnClickListener(v -> showWallpaperPicker());
+        appLockChoice = findViewById(R.id.appLockChoice);
+        appLockChoice.setOnClickListener(v -> {
+            if (AppLock.active(this)) showLockPicker();
+            else startActivityForResult(new Intent(this, PinActivity.class).putExtra(PinActivity.EXTRA_SET, true),
+                    SET_PIN_REQUEST);
+        });
         animationsChoice = findViewById(R.id.animationsChoice);
         animationsChoice.setOnClickListener(v -> {
             animations = !animations;
@@ -157,33 +181,116 @@ public final class LauncherSettingsActivity extends Activity {
         // A theme with a single wallpaper.jpg offers that picture too (Config maps the choice back to it).
         File single = dir == null ? null : new File(dir, Config.WALLPAPER_NAME);
         if (single != null && single.isFile()) images.add(0, single);
-        String[] labels = new String[images.size() + 1];
-        for (int i = 0; i < images.size(); i++) labels[i] = images.get(i).getName();
-        labels[images.size()] = getString(R.string.wallpaper_none);
         String current = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
         int checked = "none".equals(current) ? images.size()
                 : indexOf(images, current);
-        new AlertDialog.Builder(this)
+        // Pictures instead of file names. Thumbnails are decoded when their cell first shows, at about
+        // 480 px in RGB_565 (~250 KB each), and dropped with the dialog.
+        float density = getResources().getDisplayMetrics().density;
+        Bitmap[] thumbs = new Bitmap[images.size()];
+        GridView grid = new GridView(this);
+        grid.setNumColumns(4);
+        int gap = Math.round(8 * density);
+        grid.setPadding(3 * gap, gap, 3 * gap, gap);
+        grid.setHorizontalSpacing(gap);
+        grid.setVerticalSpacing(gap);
+        grid.setSelector(R.drawable.wallpaper_focus);
+        grid.setDrawSelectorOnTop(true);
+        grid.setAdapter(new BaseAdapter() {
+            @Override public int getCount() { return images.size() + 1; }
+            @Override public Object getItem(int position) { return position; }
+            @Override public long getItemId(int position) { return position; }
+            @Override public View getView(int position, View old, ViewGroup parent) {
+                LinearLayout cell = old != null ? (LinearLayout) old : wallpaperCell(density);
+                ImageView image = (ImageView) cell.getChildAt(0);
+                TextView name = (TextView) cell.getChildAt(1);
+                if (position < images.size()) {
+                    if (thumbs[position] == null) thumbs[position] = thumbnail(images.get(position));
+                    image.setImageBitmap(thumbs[position]);
+                    name.setText(wallpaperLabel(images.get(position).getName()));
+                } else {
+                    image.setImageDrawable(new ColorDrawable(Color.BLACK));
+                    name.setText(R.string.wallpaper_none);
+                }
+                return cell;
+            }
+        });
+        AlertDialog picker = new AlertDialog.Builder(this)
                 .setTitle(R.string.wallpaper_label)
-                .setSingleChoiceItems(labels, checked, (dialog, which) -> {
-                    dialog.dismiss();
-                    if (which == images.size()) {
-                        choices.edit().putString(Config.WALLPAPER_CHOICE_KEY, "none").apply();
-                    } else {
-                        choices.edit().putString(Config.WALLPAPER_CHOICE_KEY,
-                                images.get(which).getName()).apply();
-                    }
-                    changed();
-                    Toast.makeText(this, R.string.wallpaper_applied, Toast.LENGTH_SHORT).show();
-                    refresh();
-                })
+                .setView(grid)
                 .setNeutralButton(R.string.wallpaper_theme_default, (dialog, which) -> {
                     choices.edit().remove(Config.WALLPAPER_CHOICE_KEY).apply();
                     changed();
                     refresh();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
-                .show();
+                .create();
+        grid.setOnItemClickListener((parent, view, which, id) -> {
+            picker.dismiss();
+            if (which == images.size()) {
+                choices.edit().putString(Config.WALLPAPER_CHOICE_KEY, "none").apply();
+            } else {
+                choices.edit().putString(Config.WALLPAPER_CHOICE_KEY,
+                        images.get(which).getName()).apply();
+            }
+            changed();
+            Toast.makeText(this, R.string.wallpaper_applied, Toast.LENGTH_SHORT).show();
+            refresh();
+        });
+        picker.show();
+        picker.getWindow().setLayout(Math.round(getResources().getDisplayMetrics().widthPixels * 0.8f),
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        grid.setSelection(Math.max(0, checked));
+        grid.requestFocus();
+    }
+
+    private LinearLayout wallpaperCell(float density) {
+        int pad = Math.round(6 * density);
+        LinearLayout cell = new LinearLayout(this);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setPadding(pad, pad, pad, pad);
+        ImageView image = new ImageView(this);
+        image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        image.setClipToOutline(true);
+        image.setOutlineProvider(new ViewOutlineProvider() {
+            @Override public void getOutline(View view, Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 10 * density);
+            }
+        });
+        cell.addView(image, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                Math.round(96 * density)));
+        TextView name = new TextView(this);
+        name.setTextColor(Color.WHITE);
+        name.setTextSize(15);
+        name.setSingleLine();
+        name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        name.setGravity(Gravity.CENTER);
+        name.setPadding(0, pad, 0, 0);
+        cell.addView(name);
+        return cell;
+    }
+
+    private static Bitmap thumbnail(File file) {
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getPath(), options);
+        // BitmapFactory rounds this down to a power of two: 1920 px decodes at 480.
+        options.inSampleSize = Math.max(1, options.outWidth / 400);
+        options.inJustDecodeBounds = false;
+        options.inPreferredConfig = Bitmap.Config.RGB_565;
+        try {
+            return BitmapFactory.decodeFile(file.getPath(), options);
+        } catch (OutOfMemoryError e) {
+            return null;
+        }
+    }
+
+    /** "03-moon-lake.jpg" reads "Moon lake" under its picture. */
+    static String wallpaperLabel(String fileName) {
+        String name = fileName.replaceFirst("\\.[^.]*$", "").replaceFirst("^\\d+[-_ ]*", "")
+                .replace('-', ' ').replace('_', ' ').trim();
+        if (name.isEmpty()) return fileName;
+        return Character.toUpperCase(name.charAt(0)) + name.substring(1);
     }
 
     private static int indexOf(List<File> images, String name) {
@@ -230,9 +337,70 @@ public final class LauncherSettingsActivity extends Activity {
         String wallpaperCurrent = choices.getString(Config.WALLPAPER_CHOICE_KEY, null);
         wallpaperChoice.setText(getString(R.string.wallpaper_state,
                 "none".equals(wallpaperCurrent) ? getString(R.string.wallpaper_none)
-                        : wallpaperCurrent != null ? wallpaperCurrent
+                        : wallpaperCurrent != null ? wallpaperLabel(wallpaperCurrent)
                         : getString(R.string.wallpaper_theme_default)));
         followThemeChoice.setSelected(!hasOnTvChoices());
+        appLockChoice.setText(getString(R.string.app_lock_state, AppLock.active(this)
+                ? getString(R.string.app_lock_count, AppLock.entries(this).size()) : getString(R.string.off)));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == UNLOCK_REQUEST && resultCode != RESULT_OK) finish();
+        if (requestCode == SET_PIN_REQUEST && resultCode == RESULT_OK) showLockPicker();
+    }
+
+    /** Ticks what the PIN guards: Launcher settings, Inputs, TV Settings, then every TV app by name. */
+    private void showLockPicker() {
+        List<String> keys = new java.util.ArrayList<>();
+        List<String> labels = new java.util.ArrayList<>();
+        keys.add(AppLock.LAUNCHER_SETTINGS);
+        labels.add(getString(R.string.launcher_settings));
+        keys.add(AppLock.INPUTS);
+        labels.add(getString(R.string.app_lock_inputs));
+        PackageManager pm = getPackageManager();
+        ResolveInfo settings = pm.resolveActivity(SystemSettings.intent(this, Settings.ACTION_SETTINGS), 0);
+        if (settings != null) {
+            keys.add(settings.activityInfo.packageName);
+            labels.add(getString(R.string.tv_settings));
+        }
+        List<ResolveInfo> apps = pm.queryIntentActivities(
+                new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER), 0);
+        apps.sort((a, b) -> a.loadLabel(pm).toString().compareToIgnoreCase(b.loadLabel(pm).toString()));
+        for (ResolveInfo app : apps) {
+            String pkg = app.activityInfo.packageName;
+            if (pkg.equals(getPackageName()) || keys.contains(pkg)) continue;
+            keys.add(pkg);
+            labels.add(app.loadLabel(pm).toString());
+        }
+        java.util.Set<String> locked = AppLock.entries(this);
+        // First setup: guard the two ways to switch the lock off before anything else is ticked.
+        if (locked.isEmpty()) {
+            locked.add(AppLock.LAUNCHER_SETTINGS);
+            if (settings != null) locked.add(settings.activityInfo.packageName);
+        }
+        boolean[] checked = new boolean[keys.size()];
+        for (int i = 0; i < checked.length; i++) checked[i] = locked.contains(keys.get(i));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.app_lock_title)
+                .setMultiChoiceItems(labels.toArray(new String[0]), checked, (d, which, on) -> {
+                    if (on) locked.add(keys.get(which));
+                    else locked.remove(keys.get(which));
+                })
+                .setPositiveButton(android.R.string.ok, (d, w) -> {
+                    AppLock.setEntries(this, locked);
+                    // The person setting this up is already in; don't ask again on the way out.
+                    AppLock.unlock(AppLock.LAUNCHER_SETTINGS);
+                    refresh();
+                })
+                .setNeutralButton(R.string.app_lock_change_pin, (d, w) -> startActivityForResult(
+                        new Intent(this, PinActivity.class).putExtra(PinActivity.EXTRA_SET, true), SET_PIN_REQUEST))
+                .setNegativeButton(R.string.app_lock_off, (d, w) -> {
+                    AppLock.turnOff(this);
+                    refresh();
+                })
+                .show();
     }
 
     private boolean hasOnTvChoices() {

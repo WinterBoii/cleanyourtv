@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FF101419"
+    android:background="#FF0F1416"
     android:fillViewport="true">
 
     <LinearLayout
@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/launcher_settings"
-            android:textColor="#FFFFFFFF"
+            android:textColor="#FFF6F1E7"
             android:textSize="34sp" />
 
         <TextView
@@ -33,7 +33,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:text="@string/columns_label"
-            android:textColor="#FFFFFFFF"
+            android:textColor="#FFF6F1E7"
             android:textSize="20sp" />
 
         <LinearLayout
@@ -53,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:text="@string/rows_below_dock_label"
-            android:textColor="#FFFFFFFF"
+            android:textColor="#FFF6F1E7"
             android:textSize="20sp" />
 
         <LinearLayout
@@ -73,7 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="18dp"
             android:text="@string/dock_opacity_label"
-            android:textColor="#FFFFFFFF"
+            android:textColor="#FFF6F1E7"
             android:textSize="20sp" />
 
         <LinearLayout
@@ -94,6 +94,19 @@
             android:layout_marginTop="28dp" />
 
         <TextView
+            android:id="@+id/appLockChoice"
+            style="@style/SettingsRow"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="7dp"
+            android:text="@string/app_lock_hint"
+            android:textColor="#C2F6F1E7"
+            android:textSize="14sp" />
+
+        <TextView
             android:id="@+id/animationsChoice"
             style="@style/SettingsRow"
             android:layout_marginTop="28dp" />
@@ -108,7 +121,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/advanced_effects_warning"
-            android:textColor="#FFACB8C1"
+            android:textColor="#C2F6F1E7"
             android:textSize="14sp" />
 
         <TextView
@@ -122,7 +135,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:text="@string/follow_theme_hint"
-            android:textColor="#FFACB8C1"
+            android:textColor="#C2F6F1E7"
             android:textSize="14sp" />
 
         <TextView
@@ -136,7 +149,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="7dp"
             android:text="@string/home_settings_help"
-            android:textColor="#FFACB8C1"
+            android:textColor="#C2F6F1E7"
             android:textSize="14sp" />
 
         <TextView

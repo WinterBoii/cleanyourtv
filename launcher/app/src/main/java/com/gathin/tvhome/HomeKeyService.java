@@ -1,8 +1,10 @@
 package com.gathin.tvhome;
 
 import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.AccessibilityServiceInfo;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -49,6 +51,10 @@ public class HomeKeyService extends AccessibilityService {
     private BroadcastReceiver unlockReceiver;
     /** The stock launcher's HOME activities (stock_home_redirect), disabled ones included. */
     private final Set<String> stockHome = new HashSet<>();
+    /** The running helper, for AppLock to switch window events on or off when the lock changes. */
+    private static HomeKeyService running;
+    /** AppLock is on: an unlock lasts until the screen turns off. */
+    private BroadcastReceiver screenOff;
 
     @Override
     protected void onServiceConnected() {
@@ -86,6 +92,8 @@ public class HomeKeyService extends AccessibilityService {
     @Override
     public void onDestroy() {
         stopWaitingForUnlock();
+        if (running == this) running = null;
+        if (screenOff != null) unregisterReceiver(screenOff);
         super.onDestroy();
     }
 
@@ -110,6 +118,35 @@ public class HomeKeyService extends AccessibilityService {
         }
         holdAppKeys = RemoteKeys.parseHoldAppKeys(config.appKeys);
         holdAppScancodes = RemoteKeys.parseHoldAppScancodes(config.appKeys);
+        running = this;
+        applyLock();
+    }
+
+    static void lockChanged() {
+        if (running != null) running.applyLock();
+    }
+
+    /** Window events only while AppLock (or stock_home_redirect) needs them; none otherwise, as before. */
+    private void applyLock() {
+        boolean lock = AppLock.active(this);
+        AccessibilityServiceInfo info = getServiceInfo();
+        if (info != null) {
+            if (lock) info.eventTypes |= AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+            else if (stockHome.isEmpty()) info.eventTypes &= ~AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED;
+            setServiceInfo(info);
+        }
+        if (lock && screenOff == null) {
+            screenOff = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    AppLock.relockAll();
+                }
+            };
+            registerReceiver(screenOff, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+        } else if (!lock && screenOff != null) {
+            unregisterReceiver(screenOff);
+            screenOff = null;
+        }
     }
 
     private boolean isSettingsKey(KeyEvent event) {
@@ -159,6 +196,26 @@ public class HomeKeyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && event.getPackageName() != null) {
+            String pkg = event.getPackageName().toString();
+            CharSequence window = event.getClassName();
+            // FallbackHome (TV Settings) shows for a moment at every boot; it is not someone opening Settings.
+            if (!pkg.equals(getPackageName()) && (window == null || !window.toString().endsWith("FallbackHome"))
+                    && AppLock.needsPin(this, pkg)) {
+                Intent pin = new Intent(this, PinActivity.class).putExtra(PinActivity.EXTRA_TARGET, pkg)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                // An overlay window (TCL's source panel is a SYSTEM_ALERT) would stay above the PIN pad: close it
+                // first, and start the pad once that Back has landed, or the pad itself takes it and cancels.
+                try {
+                    getPackageManager().getActivityInfo(new ComponentName(pkg, String.valueOf(window)), 0);
+                    startActivity(pin);
+                } catch (PackageManager.NameNotFoundException overlay) {
+                    performGlobalAction(GLOBAL_ACTION_BACK);
+                    new android.os.Handler(getMainLooper()).postDelayed(() -> startActivity(pin), 400);
+                }
+                return;
+            }
+        }
         // stock_home_redirect: the firmware turned the stock launcher back on and its home screen came up.
         if (stockHome.isEmpty() || event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         CharSequence cls = event.getClassName();
